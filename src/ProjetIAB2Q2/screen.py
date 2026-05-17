@@ -28,6 +28,3 @@ def capturer_ecran():
     
     print(f"Capture d'écran enregistrée avec succès sous : {chemin_sauvegarde}")
     return chemin_sauvegarde
-
-if __name__ == "__main__":
-    capturer_ecran()

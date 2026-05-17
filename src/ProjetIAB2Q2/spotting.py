@@ -60,7 +60,3 @@ def analyser_image(path_image_globale):
             reponses_trouvees.append(coordonnees)
 
     return questions_trouvees, reponses_trouvees
-
-if __name__ == '__main__':
-    IMAGE = "images/image.png" 
-    questions, reponses = analyser_image(IMAGE)

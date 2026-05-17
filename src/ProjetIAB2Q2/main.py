@@ -1,4 +1,4 @@
-import screen, spotting, extraction
+import screen, spotting, extraction, prompt
 
 def main():
     iteration()
@@ -11,10 +11,12 @@ def iteration():
     print("Questions détectées : ", len(questions))
     print("Réponses détectées : ", len(reponses))
 
-    extraction_textes = extraction.extraire_textes(capturer_ecran, questions + reponses)
-    print("Textes extraits : ", len(extraction_textes))
-    for i, texte in enumerate(extraction_textes):
-        print(f"Texte {i+1} : {texte}")
+    question_textes, reponses_textes = extraction.extraire_textes(capturer_ecran, questions + reponses)
+    print("Question extraite : ", question_textes)
+    print("Réponses extraites : ", reponses_textes)
+
+    reponse = prompt.trouver_bonne_reponse(question_textes, reponses_textes)
+    print("Réponse trouvée : ", reponse)
 
 if __name__ == "__main__":
     main()

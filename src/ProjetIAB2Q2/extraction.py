@@ -19,8 +19,7 @@ def extraire_textes(chemin_image_globale, coordonnees_boites):
         phrase_complete = " ".join(mots_trouves)
         textes_lus.append(phrase_complete)
 
-    return textes_lus
+    question = textes_lus[0]
+    reponses = textes_lus[1:]
 
-if __name__ == '__main__':
-    print("Le module d'extraction est prêt à être importé !")
-
+    return question, reponses
