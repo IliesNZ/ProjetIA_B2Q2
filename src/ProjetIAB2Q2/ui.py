@@ -1,5 +1,10 @@
 import tkinter as tk
 import threading
+import sys
+
+if sys.platform == "win32":
+    import ctypes
+    from ctypes import wintypes
 
 # Colors
 TRANSPARENT_COLOR = "#123456"
@@ -15,6 +20,11 @@ class MinimalUI:
     def __init__(self, on_play_callback):
         self.on_play_callback = on_play_callback
         self.root = tk.Tk()
+        self._hotkeys_running = False
+        self._hotkey_thread = None
+        self._hotkey_thread_id = None
+        self._hotkey_registered_ids = []
+        self._window_visible = True
         self.setup_window()
         self.setup_ui()
 
@@ -30,7 +40,9 @@ class MinimalUI:
             pass
         self.root.attributes("-topmost", True)
         self.root.overrideredirect(True)
-        self.root.bind("<Escape>", lambda _event: self.root.destroy())
+        self.root.bind("<Escape>", lambda _event: self._quit_app())
+        self._setup_hotkeys()
+        self.root.protocol("WM_DELETE_WINDOW", self._quit_app)
 
     def setup_ui(self):
         # Main container
@@ -92,7 +104,7 @@ class MinimalUI:
             pady=0,
             width=2,
             cursor="hand2",
-            command=self.root.destroy,
+            command=self._quit_app,
         )
         btn_close.pack(side="right", fill="y", padx=(0, 2), pady=2)
 
@@ -120,6 +132,96 @@ class MinimalUI:
         self._spinner_job = None
         self._busy = False
 
+    def _setup_hotkeys(self):
+        if sys.platform != "win32":
+            # Fallback: local bindings only when focused.
+            self.root.bind("<F9>", lambda _event: self._toggle_window_visibility())
+            self.root.bind("<F10>", lambda _event: self._trigger_play())
+            self.root.bind("<F11>", lambda _event: self._quit_app())
+            return
+
+        self._hotkeys_running = True
+        self._hotkey_thread = threading.Thread(target=self._hotkey_loop_windows, daemon=True)
+        self._hotkey_thread.start()
+
+    def _hotkey_loop_windows(self):
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+
+        self._hotkey_thread_id = kernel32.GetCurrentThreadId()
+
+        HOTKEY_ID_PLAY = 1
+        HOTKEY_ID_QUIT = 2
+        HOTKEY_ID_TOGGLE = 3
+        MOD_NONE = 0
+        VK_F9 = 0x78
+        VK_F10 = 0x79
+        VK_F11 = 0x7A
+        WM_HOTKEY = 0x0312
+
+        # F9: toggle window visibility
+        if user32.RegisterHotKey(None, HOTKEY_ID_TOGGLE, MOD_NONE, VK_F9):
+            self._hotkey_registered_ids.append(HOTKEY_ID_TOGGLE)
+        else:
+            print("Impossible d'enregistrer F9 global")
+
+        # F10: play
+        if user32.RegisterHotKey(None, HOTKEY_ID_PLAY, MOD_NONE, VK_F10):
+            self._hotkey_registered_ids.append(HOTKEY_ID_PLAY)
+        else:
+            print("Impossible d'enregistrer F10 global")
+
+        # F11: quit
+        if user32.RegisterHotKey(None, HOTKEY_ID_QUIT, MOD_NONE, VK_F11):
+            self._hotkey_registered_ids.append(HOTKEY_ID_QUIT)
+        else:
+            print("Impossible d'enregistrer F11 global")
+
+        msg = wintypes.MSG()
+        while self._hotkeys_running and user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
+            if msg.message == WM_HOTKEY:
+                if msg.wParam == HOTKEY_ID_TOGGLE:
+                    self.root.after(0, self._toggle_window_visibility)
+                elif msg.wParam == HOTKEY_ID_PLAY:
+                    self.root.after(0, self._trigger_play)
+                elif msg.wParam == HOTKEY_ID_QUIT:
+                    self.root.after(0, self._quit_app)
+
+        for hotkey_id in self._hotkey_registered_ids:
+            user32.UnregisterHotKey(None, hotkey_id)
+        self._hotkey_registered_ids.clear()
+
+    def _trigger_play(self):
+        if not self._window_visible:
+            self._toggle_window_visibility()
+        if not self._busy:
+            self._on_play_click()
+
+    def _toggle_window_visibility(self):
+        self._window_visible = not self._window_visible
+        if self._window_visible:
+            self.root.deiconify()
+            self.root.lift()
+            self.root.focus_force()
+        else:
+            self.root.withdraw()
+
+    def _quit_app(self):
+        self._stop_hotkeys()
+        self.root.destroy()
+
+    def _stop_hotkeys(self):
+        if sys.platform != "win32":
+            return
+        if not self._hotkeys_running:
+            return
+
+        self._hotkeys_running = False
+
+        # Wake message loop so it can exit and unregister keys.
+        if self._hotkey_thread_id is not None:
+            ctypes.windll.user32.PostThreadMessageW(self._hotkey_thread_id, 0x0012, 0, 0)
+
     def _start_move(self, event):
         self.root._drag_start_x = event.x_root
         self.root._drag_start_y = event.y_root
@@ -140,6 +242,10 @@ class MinimalUI:
             self.btn_play.config(bg=BTN_BG)
 
     def _on_play_click(self):
+        if not self._window_visible:
+            self._toggle_window_visibility()
+        if self._busy:
+            return
         self.set_busy(True)
 
         def background_task():
