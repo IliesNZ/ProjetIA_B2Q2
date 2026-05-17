@@ -225,3 +225,5 @@ dataset_roboflow/
 
 __pycache__/
 *.pyc
+
+images/
