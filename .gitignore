@@ -220,7 +220,6 @@ __marimo__/
 *.pt
 runs/
 
-dataset/
 dataset_roboflow/
 
 __pycache__/
