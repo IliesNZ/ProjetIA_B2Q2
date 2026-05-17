@@ -39,7 +39,7 @@ def analyser_image(path_image_globale):
     questions_trouvees = []
     reponses_trouvees = []
 
-    largeur_image = resultats[0].orig_img.shape[1]
+    largeur_image = resultats[0].orig_img.shape[1]  # shape renvoie hauteur | largeur | canaux
 
     for boite in boites:
         x1, y1, x2, y2 = boite.xyxy[0].tolist()     # Récupère les coordonnées 
