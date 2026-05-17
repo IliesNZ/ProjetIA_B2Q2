@@ -18,7 +18,7 @@ Choix :
     for rep in liste_reponses:
         prompt += f"- {rep}\n"
 
-    reponse_api = ollama.chat(model='qwen2.5-coder:7b', messages=[
+    reponse_api = ollama.chat(model='llama3.1', messages=[
         {
             'role': 'user',
             'content': prompt
