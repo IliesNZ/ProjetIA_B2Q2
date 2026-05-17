@@ -8,5 +8,5 @@ def click_on_answer(coordonees):
     centre_y = (y1 + y2) // 2
     
     print(f"Déplacement de la souris vers ({centre_x}, {centre_y})...")
-    pyautogui.moveTo(centre_x, centre_y, duration=1)
+    pyautogui.moveTo(centre_x, centre_y, duration=0.5)
     pyautogui.click()

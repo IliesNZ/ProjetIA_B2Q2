@@ -24,7 +24,5 @@ def iteration():
             click.click_on_answer(reponses[i])
             continue
 
-
-
 if __name__ == "__main__":
     main()
