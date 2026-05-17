@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+*.pt
+runs/
+
+dataset/
+dataset_roboflow/
+
+__pycache__/
+*.pyc
