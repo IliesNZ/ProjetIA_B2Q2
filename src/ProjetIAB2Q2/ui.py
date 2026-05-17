@@ -1,10 +1,10 @@
 import tkinter as tk
-from tkinter import ttk
 import threading
 
 # Colors
-BG_MAIN = "#000000"
-BTN_BG = "#000000"
+TRANSPARENT_COLOR = "#123456"
+BG_MAIN = TRANSPARENT_COLOR
+BTN_BG = TRANSPARENT_COLOR
 BTN_HOVER = "#1a1a1a"
 BTN_ACTIVE = "#0d0d0d"
 HANDLE_BG = "#1a1a1a"
@@ -23,29 +23,23 @@ class MinimalUI:
         self.root.geometry("130x64")
         self.root.resizable(False, False)
         self.root.configure(bg=BG_MAIN)
+        # Try to enable color-key transparency (works on Windows)
+        try:
+            self.root.attributes("-transparentcolor", TRANSPARENT_COLOR)
+        except Exception:
+            pass
         self.root.attributes("-topmost", True)
         self.root.overrideredirect(True)
+        self.root.bind("<Escape>", lambda _event: self.root.destroy())
 
     def setup_ui(self):
-        # Style for progress bar
-        style = ttk.Style(self.root)
-        style.theme_use("clam")
-        style.configure(
-            "Tiny.Horizontal.TProgressbar",
-            troughcolor="#e2e2e2",
-            bordercolor="#e2e2e2",
-            background=BTN_BG,
-            lightcolor=BTN_BG,
-            darkcolor=BTN_BG,
-            thickness=7,
-        )
-
         # Main container
         self.container = tk.Frame(self.root, bg=BG_MAIN)
         self.container.pack(fill="both", expand=True)
 
         # Drag handle
-        handle = tk.Frame(self.container, bg=HANDLE_BG, width=16, cursor="fleur")
+        # Make handle background transparent (color-key) so only the mark remains visible
+        handle = tk.Frame(self.container, bg=BTN_BG, width=16, cursor="fleur")
         handle.pack(side="left", fill="y")
         handle.pack_propagate(False)
 
@@ -53,8 +47,8 @@ class MinimalUI:
             handle,
             text="||",
             font=("Segoe UI", 8, "bold"),
-            bg=HANDLE_BG,
-            fg=HANDLE_FG,
+            bg=BTN_BG,
+            fg="white",
         )
         handle_mark.pack(expand=True)
 
@@ -70,7 +64,7 @@ class MinimalUI:
             font=("Segoe UI Semibold", 16),
             bg=BTN_BG,
             fg="white",
-            activebackground=BTN_ACTIVE,
+            activebackground=BTN_BG,
             activeforeground="white",
             relief="flat",
             bd=0,
@@ -83,30 +77,48 @@ class MinimalUI:
         self.btn_play.bind("<Enter>", self._on_enter_play)
         self.btn_play.bind("<Leave>", self._on_leave_play)
 
-        # Close button
+        # Close button: larger hitbox for easier closing
         btn_close = tk.Button(
             self.container,
             text="×",
-            font=("Segoe UI Semibold", 14),
+            font=("Segoe UI Semibold", 16),
             bg=BTN_BG,
             fg="white",
-            activebackground=BTN_ACTIVE,
+            activebackground=BTN_BG,
             activeforeground="white",
             relief="flat",
             bd=0,
-            padx=4,
+            padx=8,
             pady=0,
+            width=2,
             cursor="hand2",
-            command=self.root.quit,
+            command=self.root.destroy,
         )
-        btn_close.pack(side="right", fill="y", padx=2)
+        btn_close.pack(side="right", fill="y", padx=(0, 2), pady=2)
 
-        # Spinner
-        self.spinner = ttk.Progressbar(
+        # Spinner wheel (custom canvas animation)
+        self.spinner_canvas = tk.Canvas(
             self.container,
-            mode="indeterminate",
-            style="Tiny.Horizontal.TProgressbar",
+            width=34,
+            height=34,
+            bg=BTN_BG,
+            highlightthickness=0,
+            bd=0,
         )
+        self.spinner_arc = self.spinner_canvas.create_arc(
+            6,
+            6,
+            28,
+            28,
+            start=0,
+            extent=300,
+            style=tk.ARC,
+            outline="white",
+            width=3,
+        )
+        self._spinner_angle = 0
+        self._spinner_job = None
+        self._busy = False
 
     def _start_move(self, event):
         self.root._drag_start_x = event.x_root
@@ -120,8 +132,8 @@ class MinimalUI:
         self.root.geometry(f"+{self.root._win_start_x + dx}+{self.root._win_start_y + dy}")
 
     def _on_enter_play(self, _event):
-        if self.btn_play["state"] == tk.NORMAL:
-            self.btn_play.config(bg=BTN_HOVER)
+        # No hover background effect: keep transparent look
+        return
 
     def _on_leave_play(self, _event):
         if self.btn_play["state"] == tk.NORMAL:
@@ -140,15 +152,26 @@ class MinimalUI:
 
         threading.Thread(target=background_task, daemon=True).start()
 
+    def _animate_spinner(self):
+        if not self._busy:
+            return
+        self._spinner_angle = (self._spinner_angle + 18) % 360
+        self.spinner_canvas.itemconfig(self.spinner_arc, start=self._spinner_angle)
+        self._spinner_job = self.root.after(40, self._animate_spinner)
+
     def set_busy(self, is_busy):
         if is_busy:
+            self._busy = True
             self.btn_play.config(state=tk.DISABLED, bg=BTN_ACTIVE)
             self.btn_play.pack_forget()
-            self.spinner.pack(side="left", expand=True, fill="both", padx=4, pady=4)
-            self.spinner.start(12)
+            self.spinner_canvas.pack(side="left", expand=True, fill="both", padx=4, pady=4)
+            self._animate_spinner()
         else:
-            self.spinner.stop()
-            self.spinner.pack_forget()
+            self._busy = False
+            if self._spinner_job is not None:
+                self.root.after_cancel(self._spinner_job)
+                self._spinner_job = None
+            self.spinner_canvas.pack_forget()
             self.btn_play.config(state=tk.NORMAL, bg=BTN_BG)
             self.btn_play.pack(side="left", expand=True, fill="both", padx=4, pady=4)
 
