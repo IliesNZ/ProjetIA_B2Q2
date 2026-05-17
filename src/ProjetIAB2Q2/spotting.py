@@ -1,8 +1,11 @@
+from pathlib import Path
+
 from ultralytics import YOLO
 from PIL import Image
 
-PATH_MODEL = '../../runs/detect/train-2/weights/best.pt'
-model = YOLO(PATH_MODEL)
+BASE_DIR = Path(__file__).resolve().parents[2]
+PATH_MODEL = BASE_DIR / 'runs' / 'detect' / 'train-2' / 'weights' / 'best.pt'
+model = YOLO(str(PATH_MODEL))
 
 def recadrage_ecran(chemin_screenshot):
     img = Image.open(chemin_screenshot)
