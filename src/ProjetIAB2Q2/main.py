@@ -49,10 +49,6 @@ def lancer_processus():
 
     threading.Thread(target=tache_de_fond, daemon=True).start()
 
-
-# ==========================================
-#        CRÉATION DE LA FENÊTRE GUI
-# ==========================================
 root = tk.Tk()
 root.title("Bot IA - B2Q2")
 root.geometry("250x120")
