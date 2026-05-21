@@ -4,9 +4,7 @@ import pyautogui
 
 
 def capturer_ecran():
-    print("Préparation de la capture d'écran...")
-    
-    print("Capture dans 2 secondes...")
+
     time.sleep(2)
     
     dossier_images = "images"
@@ -26,5 +24,4 @@ def capturer_ecran():
     screenshot = pyautogui.screenshot()
     screenshot.save(chemin_sauvegarde)
     
-    print(f"Capture d'écran enregistrée avec succès sous : {chemin_sauvegarde}")
     return chemin_sauvegarde

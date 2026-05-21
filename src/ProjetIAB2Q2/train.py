@@ -4,7 +4,7 @@
 
 from ultralytics import YOLO
 
-model = YOLO('yolov8s.pt') # modele de CNN que l'on va entrainer 
+model = YOLO('yolov8m.pt') # modele de CNN que l'on va entrainer 
 
 if __name__ == '__main__':
     print("Démarrage de l'entraînement du CNN...")
